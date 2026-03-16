@@ -58,13 +58,14 @@ The AI helped write all the pytest cases. I instructed it to write tests targeti
 
 ## 4. What did you learn about Streamlit and state?
 
-- How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
+In Streamlit, the whole script runs again from the beginning whenever a user clicks a button or types something. Because of this, normal variables get reset every time the script runs again. To keep important values between these reruns, Streamlit provides session state, which stores data for the user’s session. It works like a small storage space where values stay saved even when the script reruns.If you want something like hints, messages, or user progress to stay visible after an interaction, you should store it in session state. Otherwise, the value will disappear when the script runs again.
 
 ---
 
 ## 5. Looking ahead: your developer habits
 
-- What is one habit or strategy from this project that you want to reuse in future labs or projects?
-  - This could be a testing habit, a prompting strategy, or a way you used Git.
-- What is one thing you would do differently next time you work with AI on a coding task?
-- In one or two sentences, describe how this project changed the way you think about AI generated code.
+One strategy I want to reuse is giving the AI full context by sharing multiple related files and explaining the overall situation before asking a question. This helps the AI understand the project better and give more accurate suggestions.
+
+Next time, before accepting AI-generated changes, I will think about how the change might affect other parts of the code. Previously, a change fixed one issue but broke the win condition logic and the hint feature.
+
+This project showed me that AI-generated code can be very helpful, but it must be reviewed carefully. AI may fix one function but miss how that change affects other dependent parts of the code.
