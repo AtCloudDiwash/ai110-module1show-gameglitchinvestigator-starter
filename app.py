@@ -1,5 +1,6 @@
 import random
 import streamlit as st
+from logic_utils import check_guess
 
 def get_range_for_difficulty(difficulty: str):
     if difficulty == "Easy":
@@ -28,23 +29,6 @@ def parse_guess(raw: str):
 
     return True, value, None
 
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
@@ -104,6 +88,9 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+if "last_hint" not in st.session_state:
+    st.session_state.last_hint = None
+
 st.subheader("Make a guess")
 
 st.info(
@@ -131,9 +118,19 @@ with col2:
 with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
+if show_hint and st.session_state.last_hint:
+    st.warning(st.session_state.last_hint)
+
 if new_game:
+    # FIXME was: only attempts and secret were reset, leaving score, status,
+    # and history carrying over from the previous game.
+    # FIX: Reset all game state keys so each new game starts completely clean.
     st.session_state.attempts = 0
-    st.session_state.secret = random.randint(1, 100)
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.score = 0
+    st.session_state.status = "playing"
+    st.session_state.history = []
+    st.session_state.last_hint = None
     st.success("New game started.")
     st.rerun()
 
@@ -145,6 +142,12 @@ if st.session_state.status != "playing":
     st.stop()
 
 if submit:
+    # FIXME was: history appeared one guess late because history.append()
+    # runs after the history display widget (line ~103) has already rendered.
+    # Streamlit renders top-to-bottom, so the display always showed the
+    # previous rerun's state.
+    # FIX: st.rerun() is called at the end of this block so the script
+    # immediately reruns and the history display reflects the new guess.
     st.session_state.attempts += 1
 
     ok, guess_int, err = parse_guess(raw_guess)
@@ -155,15 +158,18 @@ if submit:
     else:
         st.session_state.history.append(guess_int)
 
-        if st.session_state.attempts % 2 == 0:
-            secret = str(st.session_state.secret)
+        # FIXME was: secret was cast to str on even attempts, which made
+        # check_guess fall into its string-comparison branch and flip the
+        # Too High / Too Low results via lexicographic ordering.
+        # FIX: Always pass the int secret so comparison is always numeric.
+        outcome = check_guess(guess_int, st.session_state.secret)
+
+        if outcome == "Too High":
+            st.session_state.last_hint = "📉 Go LOWER!"
+        elif outcome == "Too Low":
+            st.session_state.last_hint = "📈 Go HIGHER!"
         else:
-            secret = st.session_state.secret
-
-        outcome, message = check_guess(guess_int, secret)
-
-        if show_hint:
-            st.warning(message)
+            st.session_state.last_hint = None
 
         st.session_state.score = update_score(
             current_score=st.session_state.score,
@@ -186,6 +192,10 @@ if submit:
                     f"The secret was {st.session_state.secret}. "
                     f"Score: {st.session_state.score}"
                 )
+            else:
+                # Only rerun for in-progress guesses so history updates immediately.
+                # Do NOT rerun on win/loss — that would wipe balloons and messages.
+                st.rerun()
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
