@@ -1,6 +1,7 @@
 import random
 import streamlit as st
 from logic_utils import check_guess
+import pandas as pd
 
 def get_range_for_difficulty(difficulty: str):
     if difficulty == "Easy":
@@ -91,6 +92,12 @@ if "history" not in st.session_state:
 if "last_hint" not in st.session_state:
     st.session_state.last_hint = None
 
+if "last_temp" not in st.session_state:
+    st.session_state.last_temp = None
+
+if "history_details" not in st.session_state:
+    st.session_state.history_details = []
+
 st.subheader("Make a guess")
 
 st.info(
@@ -119,7 +126,14 @@ with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
 if show_hint and st.session_state.last_hint:
-    st.warning(st.session_state.last_hint)
+    hint = st.session_state.last_hint
+    if "LOWER" in hint:
+        st.error(hint)
+    else:
+        st.success(hint)
+
+if st.session_state.last_temp:
+    st.markdown(f"### {st.session_state.last_temp}")
 
 if new_game:
     # FIXME was: only attempts and secret were reset, leaving score, status,
@@ -131,6 +145,8 @@ if new_game:
     st.session_state.status = "playing"
     st.session_state.history = []
     st.session_state.last_hint = None
+    st.session_state.last_temp = None
+    st.session_state.history_details = []
     st.success("New game started.")
     st.rerun()
 
@@ -171,6 +187,25 @@ if submit:
         else:
             st.session_state.last_hint = None
 
+        # Hot/Cold temperature based on distance from secret
+        distance = abs(guess_int - st.session_state.secret)
+        game_range = high - low
+        if outcome == "Win":
+            st.session_state.last_temp = "🎯 Exactly right!"
+        elif distance <= game_range * 0.10:
+            st.session_state.last_temp = "🔥 Very Hot!"
+        elif distance <= game_range * 0.25:
+            st.session_state.last_temp = "🌡️ Warm"
+        else:
+            st.session_state.last_temp = "🧊 Cold"
+
+        # Store details for the summary table
+        st.session_state.history_details.append({
+            "Attempt": st.session_state.attempts,
+            "Guess": guess_int,
+            "Result": outcome,
+        })
+
         st.session_state.score = update_score(
             current_score=st.session_state.score,
             outcome=outcome,
@@ -196,6 +231,12 @@ if submit:
                 # Only rerun for in-progress guesses so history updates immediately.
                 # Do NOT rerun on win/loss — that would wipe balloons and messages.
                 st.rerun()
+
+if st.session_state.history_details:
+    st.divider()
+    st.subheader("📊 Guess History")
+    df = pd.DataFrame(st.session_state.history_details)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")

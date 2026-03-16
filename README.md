@@ -44,4 +44,14 @@ Note: The game was played without knowing the secret using the binary search str
 
 ## 🚀 Stretch Features
 
-- [ ] [If you choose to complete Challenge 4, insert a screenshot of your Enhanced Game UI here]
+### Challenge 3: Professional Documentation and Linting
+
+Added PEP 257 docstrings and PEP 8 formatting to all functions in `logic_utils.py`
+
+### Challenge 4: Enhanced Game UI
+
+Added color-coded hints, a hot/cold temperature indicator, and a guess history summary table to improve the player experience.
+
+![Enhanced Game UI](enhanced.png)
+
+
